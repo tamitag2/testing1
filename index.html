@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Today — Todo List</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <p class="eyebrow">Make space for what matters</p>
+        <h1>Today</h1>
+        <p id="summary" class="summary">Nothing waiting. Enjoy the quiet.</p>
+      </header>
+
+      <form id="todo-form">
+        <label class="sr-only" for="todo-input">New task</label>
+        <input id="todo-input" maxlength="120" placeholder="What needs doing?" autocomplete="off" />
+        <button type="submit">Add task</button>
+      </form>
+
+      <section class="list-card" aria-label="Todo list">
+        <nav class="filters" aria-label="Filter tasks">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="active">Active</button>
+          <button data-filter="completed">Completed</button>
+        </nav>
+        <ul id="todo-list"></ul>
+        <p id="empty-state" class="empty">No tasks here yet.</p>
+        <footer>
+          <span id="count">0 tasks left</span>
+          <button id="clear-completed" class="text-button">Clear completed</button>
+        </footer>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "backend-engineer": {
+      "source": "siviter-xyz/dot-agent",
+      "sourceType": "github",
+      "skillPath": "skills/backend-engineer/SKILL.md",
+      "computedHash": "cb334c90d6521d716860c38f5043f5e9726130f69cc429781ae145e65c29a671"
+    },
+    "caveman": {
+      "source": "juliusbrussee/caveman",
+      "sourceType": "github",
+      "skillPath": "skills/caveman/SKILL.md",
+      "computedHash": "59e1fe0d3eeb4189ee5c467efde567672e5cacb41f157c477a6152ca907d44ea"
+    },
+    "ponytail": {
+      "source": "dietrichgebert/ponytail",
+      "sourceType": "github",
+      "skillPath": "skills/ponytail/SKILL.md",
+      "computedHash": "210fa0831f649ce9f8a305f7b7c8cf2a0dd09ac4dd53067109941b96e7811d4e"
+    }
+  }
+}
