@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "boto3-stubs[dynamodb]>=1.43.72",
   "httpx>=0.28,<1",
   "pytest>=8,<9",
   "ruff>=0.16.3",
@@ -26,3 +27,6 @@ pythonpath = ["."]
 
 [tool.ruff]
 extend-exclude = [".agents"]
+
+[tool.ruff.lint]
+extend-select = ["ANN"]

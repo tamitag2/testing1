@@ -1,48 +1,59 @@
+from typing import Never, Self
+
 from botocore.exceptions import ClientError
 from fastapi.testclient import TestClient
 
 from backend.app import app, get_table
+from backend.database import TodoItem
 
 
 class Batch:
-    def __init__(self, db):
+    def __init__(self, db: "FakeTable") -> None:
         self.db = db
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         return None
 
-    def delete_item(self, Key):
+    def delete_item(self, Key: dict[str, str]) -> None:
         self.db.delete_item(Key=Key)
 
 
 class FakeTable:
-    def __init__(self):
-        self.items = {}
-        self.query_calls = []
+    def __init__(self) -> None:
+        self.items: dict[str, TodoItem] = {}
+        self.query_calls: list[dict[str, object]] = []
 
-    def query(self, **kwargs):
+    def query(self, **kwargs: object) -> dict[str, list[TodoItem]]:
         self.query_calls.append(kwargs)
-        return {"Items": list(self.items.values())[: kwargs["Limit"]]}
+        limit = kwargs["Limit"]
+        if not isinstance(limit, int):
+            raise TypeError("Limit must be an integer")
+        return {"Items": list(self.items.values())[:limit]}
 
-    def put_item(self, Item):
+    def put_item(self, Item: TodoItem) -> None:
         self.items[Item["id"]] = Item
 
-    def update_item(self, Key, ExpressionAttributeValues, **_):
+    def update_item(
+        self,
+        Key: dict[str, str],
+        ExpressionAttributeValues: dict[str, bool],
+        **_: object,
+    ) -> dict[str, TodoItem]:
         item = self.items[Key["id"]]
         item["completed"] = ExpressionAttributeValues[":completed"]
         return {"Attributes": item}
 
-    def delete_item(self, Key):
+    def delete_item(self, Key: dict[str, str]) -> None:
         self.items.pop(Key["id"], None)
 
-    def batch_writer(self):
+    def batch_writer(self) -> Batch:
         return Batch(self)
 
 
-def test_todo_flow():
+def test_todo_flow() -> None:
     db = FakeTable()
     app.dependency_overrides[get_table] = lambda: db
     client = TestClient(app)
@@ -71,9 +82,9 @@ def test_todo_flow():
     app.dependency_overrides.clear()
 
 
-def test_storage_errors_are_mapped_without_leaking_details():
+def test_storage_errors_are_mapped_without_leaking_details() -> None:
     class FailingTable:
-        def query(self, **_):
+        def query(self, **_: object) -> Never:
             raise ClientError(
                 {"Error": {"Code": "ThrottlingException", "Message": "secret detail"}},
                 "Query",

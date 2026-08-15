@@ -1,12 +1,22 @@
+from __future__ import annotations
+
 import base64
 import json
 import os
 import time
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import EndpointConnectionError
+
+if TYPE_CHECKING:
+    from mypy_boto3_dynamodb.client import DynamoDBClient
+    from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
+    from mypy_boto3_dynamodb.type_defs import (
+        CreateGlobalSecondaryIndexActionTypeDef,
+        QueryInputTableQueryTypeDef,
+    )
 
 TABLE_NAME = os.getenv("DYNAMODB_TABLE", "todos")
 INDEXES = {
@@ -15,7 +25,26 @@ INDEXES = {
 }
 
 
-def _client():
+class TodoItem(TypedDict):
+    id: str
+    title: str
+    completed: bool
+    created_at: str
+    entity_type: str
+    title_sort: str
+    title_search: str
+
+
+class TodoPageResult(TypedDict):
+    items: list[TodoItem]
+    page_size: int
+    next_cursor: str | None
+
+
+type CursorKey = dict[str, str]
+
+
+def _client() -> DynamoDBServiceResource:
     return boto3.resource(
         "dynamodb",
         endpoint_url=os.getenv("DYNAMODB_ENDPOINT"),
@@ -25,7 +54,7 @@ def _client():
     )
 
 
-def _index(name: str, sort_key: str) -> dict:
+def _index(name: str, sort_key: str) -> CreateGlobalSecondaryIndexActionTypeDef:
     return {
         "IndexName": name,
         "KeySchema": [
@@ -36,7 +65,7 @@ def _index(name: str, sort_key: str) -> dict:
     }
 
 
-def _wait_for_index(client, name: str) -> None:
+def _wait_for_index(client: DynamoDBClient, name: str) -> None:
     while True:
         indexes = client.describe_table(TableName=TABLE_NAME)["Table"].get(
             "GlobalSecondaryIndexes", []
@@ -49,16 +78,19 @@ def _wait_for_index(client, name: str) -> None:
         time.sleep(0.5)
 
 
-def _backfill_index_fields(table) -> None:
+def _backfill_index_fields(table: Table) -> None:
     response = table.scan(ProjectionExpression="id, title")
     while True:
         for item in response.get("Items", []):
+            title = item["title"]
+            if not isinstance(title, str):
+                raise TypeError("Todo title must be a string")
             table.update_item(
                 Key={"id": item["id"]},
                 UpdateExpression="SET entity_type = :type, title_sort = :title, title_search = :title",
                 ExpressionAttributeValues={
                     ":type": "TODO",
-                    ":title": item["title"].casefold(),
+                    ":title": title.casefold(),
                 },
             )
         if "LastEvaluatedKey" not in response:
@@ -69,7 +101,7 @@ def _backfill_index_fields(table) -> None:
         )
 
 
-def _ensure_indexes(table) -> None:
+def _ensure_indexes(table: Table) -> None:
     client = table.meta.client
     existing = {
         index["IndexName"]
@@ -94,7 +126,7 @@ def _ensure_indexes(table) -> None:
         _wait_for_index(client, name)
 
 
-def connect_table():
+def connect_table() -> Table:
     resource = _client()
     for attempt in range(20):
         try:
@@ -120,9 +152,10 @@ def connect_table():
             if attempt == 19:
                 raise
             time.sleep(1)
+    raise RuntimeError("DynamoDB connection retries exhausted")
 
 
-def _decode_cursor(cursor: str | None) -> dict | None:
+def _decode_cursor(cursor: str | None) -> CursorKey | None:
     if not cursor:
         return None
     try:
@@ -131,24 +164,28 @@ def _decode_cursor(cursor: str | None) -> dict | None:
         raise ValueError("Invalid cursor") from error
     if not isinstance(value, dict):
         raise TypeError("Invalid cursor")
-    return value
+    if not all(
+        isinstance(key, str) and isinstance(item, str) for key, item in value.items()
+    ):
+        raise TypeError("Invalid cursor")
+    return cast("CursorKey", value)
 
 
-def _encode_cursor(key: dict | None) -> str | None:
+def _encode_cursor(key: CursorKey | None) -> str | None:
     if not key:
         return None
     return base64.urlsafe_b64encode(json.dumps(key).encode()).decode()
 
 
 def query_todos(
-    table,
+    table: Table,
     page_size: int,
     cursor: str | None,
     completed: bool | None,
     search: str | None,
     sort_by: Literal["created_at", "title"],
     order: Literal["asc", "desc"],
-) -> dict:
+) -> TodoPageResult:
     filters = None
     if completed is not None:
         filters = Attr("completed").eq(completed)
@@ -156,7 +193,7 @@ def query_todos(
         search_filter = Attr("title_search").contains(search.casefold())
         filters = search_filter if filters is None else filters & search_filter
 
-    query = {
+    query: QueryInputTableQueryTypeDef = {
         "IndexName": "title-index" if sort_by == "title" else "created_at-index",
         "KeyConditionExpression": Key("entity_type").eq("TODO"),
         "Limit": page_size,
@@ -169,14 +206,16 @@ def query_todos(
 
     response = table.query(**query)
     return {
-        "items": response.get("Items", []),
+        "items": cast("list[TodoItem]", response.get("Items", [])),
         "page_size": page_size,
-        "next_cursor": _encode_cursor(response.get("LastEvaluatedKey")),
+        "next_cursor": _encode_cursor(
+            cast("CursorKey | None", response.get("LastEvaluatedKey"))
+        ),
     }
 
 
-def delete_completed_items(table) -> None:
-    cursor = None
+def delete_completed_items(table: Table) -> None:
+    cursor: str | None = None
     with table.batch_writer() as batch:
         while True:
             page = query_todos(table, 100, cursor, True, None, "created_at", "asc")
