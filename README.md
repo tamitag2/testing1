@@ -14,3 +14,5 @@ Project-local agent skills are stored in `.agents/skills`:
 - `backend-engineer`
 - `caveman`
 - `ponytail`
+
+An additional local graph backend lives in [`neptune-quest-graph`](./neptune-quest-graph).

@@ -1,0 +1,15 @@
+{
+  "name": "neptune-quest-graph",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "gremlin": "3.7.3"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  }
+}
