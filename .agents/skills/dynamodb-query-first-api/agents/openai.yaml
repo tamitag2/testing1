@@ -1,0 +1,4 @@
+interface:
+  display_name: "DynamoDB Query-First API"
+  short_description: "Design efficient DynamoDB-backed APIs"
+  default_prompt: "Use $dynamodb-query-first-api to design or review this API for indexed queries, cursor pagination, and safe error handling."

@@ -25,7 +25,5 @@ class Todo(BaseModel):
 
 class TodoPage(BaseModel):
     items: list[Todo]
-    page: int
     page_size: int
-    total: int
-    pages: int
+    next_cursor: str | None

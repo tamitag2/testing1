@@ -1,3 +1,4 @@
+from botocore.exceptions import ClientError
 from fastapi.testclient import TestClient
 
 from backend.app import app, get_table
@@ -20,9 +21,11 @@ class Batch:
 class FakeTable:
     def __init__(self):
         self.items = {}
+        self.query_calls = []
 
-    def scan(self, **_):
-        return {"Items": list(self.items.values())}
+    def query(self, **kwargs):
+        self.query_calls.append(kwargs)
+        return {"Items": list(self.items.values())[: kwargs["Limit"]]}
 
     def put_item(self, Item):
         self.items[Item["id"]] = Item
@@ -50,13 +53,34 @@ def test_todo_flow():
     todo = created.json()
     assert todo["title"] == "Ship it"
 
-    page = client.get("/api/todos?page=1&page_size=1&sort_by=title&order=desc").json()
-    assert page == {"items": [todo], "page": 1, "page_size": 1, "total": 1, "pages": 1}
-    assert client.get("/api/todos?completed=true").json()["items"] == []
-    assert client.get("/api/todos?q=SHIP").json()["items"] == [todo]
+    page = client.get(
+        "/api/todos?page_size=1&completed=false&q=SHIP&sort_by=title&order=desc"
+    ).json()
+    assert page == {"items": [todo], "page_size": 1, "next_cursor": None}
+    query = db.query_calls[-1]
+    assert query["IndexName"] == "title-index"
+    assert query["Limit"] == 1
+    assert query["ScanIndexForward"] is False
+    assert "FilterExpression" in query
+    assert client.get("/api/todos?cursor=not-base64").status_code == 400
     completed = client.patch(f"/api/todos/{todo['id']}", json={"completed": True})
     assert completed.json()["completed"] is True
 
     assert client.delete("/api/todos").status_code == 204
     assert client.get("/api/todos").json()["items"] == []
+    app.dependency_overrides.clear()
+
+
+def test_storage_errors_are_mapped_without_leaking_details():
+    class FailingTable:
+        def query(self, **_):
+            raise ClientError(
+                {"Error": {"Code": "ThrottlingException", "Message": "secret detail"}},
+                "Query",
+            )
+
+    app.dependency_overrides[get_table] = FailingTable
+    response = TestClient(app).get("/api/todos")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Todo storage is temporarily unavailable"}
     app.dependency_overrides.clear()

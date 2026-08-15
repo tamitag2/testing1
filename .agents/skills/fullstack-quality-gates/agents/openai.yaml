@@ -1,0 +1,4 @@
+interface:
+  display_name: "Full-Stack Quality Gates"
+  short_description: "Add current lint and typecheck automation"
+  default_prompt: "Use $fullstack-quality-gates to set up current linting, type checking, tests, and matching GitHub Actions for this repository."
