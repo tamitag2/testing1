@@ -91,7 +91,35 @@ form button {
 ul { margin: 0; padding: 0; list-style: none; }
 li { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #eee8df; }
 li label { display: flex; min-width: 0; flex: 1; align-items: center; gap: 12px; }
-li input { width: 20px; height: 20px; min-width: 20px; accent-color: #2f5d50; box-shadow: none; }
+li input[type="checkbox"] {
+  appearance: none;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  flex: 0 0 22px;
+  place-content: center;
+  border: 1.5px solid #918b81;
+  border-radius: 6px;
+  padding: 0;
+  background: #fffdf8;
+  box-shadow: inset 0 0 0 2px #fffdf8;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+li input[type="checkbox"]::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border: solid #fffdf8;
+  border-width: 0 0 2px 2px;
+  opacity: 0;
+  transform: translateY(-1px) rotate(-45deg) scale(.7);
+  transition: opacity 120ms ease, transform 140ms ease;
+}
+li input[type="checkbox"]:checked { border-color: #2f5d50; background: #2f5d50; }
+li input[type="checkbox"]:checked::before { opacity: 1; transform: translateY(-1px) rotate(-45deg) scale(1); }
+li input[type="checkbox"]:hover { border-color: #2f5d50; transform: translateY(-1px); }
+li input[type="checkbox"]:focus-visible { outline: 3px solid #e8cfbb; outline-offset: 3px; }
 li span { overflow: hidden; text-overflow: ellipsis; }
 li.done span { color: #9a958c; text-decoration: line-through; }
 .delete { border: 0; background: transparent; color: #aaa39a; font-size: 1.25rem; }
