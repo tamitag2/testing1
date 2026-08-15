@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Today — Todo List</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <main class="app">
@@ -19,6 +19,7 @@
         <input id="todo-input" maxlength="120" placeholder="What needs doing?" autocomplete="off" />
         <button type="submit">Add task</button>
       </form>
+      <p id="error" class="error" role="alert" hidden></p>
 
       <section class="list-card" aria-label="Todo list">
         <nav class="filters" aria-label="Filter tasks">
@@ -34,6 +35,6 @@
         </footer>
       </section>
     </main>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="/src/app.js"></script>
   </body>
 </html>

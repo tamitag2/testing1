@@ -8,7 +8,7 @@ Create a small todo-list application that lets a user keep track of everyday tas
 - Add a todo with a non-empty title.
 - Mark a todo as complete or incomplete.
 - Delete a todo.
-- Keep todos after the page is refreshed (local storage is sufficient).
+- Keep todos after the page is refreshed using the FastAPI API and DynamoDB.
 - Present completed items differently from active items.
 
 ## Acceptance criteria

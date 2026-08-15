@@ -43,6 +43,7 @@ h1 {
 }
 
 .summary { margin: 16px 0 32px; color: #746f67; }
+.error { margin: -8px 0 20px; color: #a84536; font-size: .9rem; }
 
 form { display: flex; gap: 10px; margin-bottom: 20px; }
 
